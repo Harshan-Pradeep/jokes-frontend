@@ -11,7 +11,7 @@ export default function SubmitJokesPage() {
     const [jokeContent, setJokeContent] = useState('');
 
     useEffect(() => {
-        fetch(`${process.env.NEXT_PUBLIC_DELIVER_JOKES_API}/types`)
+        fetch(`${process.env.NEXT_PUBLIC_SUBMIT_JOKES_API}/api/v1/jokes/types`)
             .then((res) => res.json())
             .then((data) => {
                 // Extract the `data` field from the response
@@ -27,14 +27,13 @@ export default function SubmitJokesPage() {
     const submitJoke = (e: React.FormEvent) => {
         e.preventDefault();
         const newJoke = { type: selectedType, content: jokeContent };
-
-        // Ensure a valid joke type is selected before submitting
+    
         if (!selectedType) {
             alert('Please select a joke type from the list.');
             return;
         }
-
-        fetch(`${process.env.NEXT_PUBLIC_SUBMIT_JOKES_API}/submit`, {
+    
+        fetch(`${process.env.NEXT_PUBLIC_SUBMIT_JOKES_API}/api/v1/jokes/submit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newJoke),
@@ -45,7 +44,17 @@ export default function SubmitJokesPage() {
                     setJokeContent('');
                     setSelectedType('');
                 } else {
-                    alert('Failed to submit the joke.');
+                    // Parse the error response
+                    return res.json().then(errorData => {
+                        // Check if there are error messages in the response
+                        if (errorData.message && Array.isArray(errorData.message)) {
+                            // Join multiple error messages if there are any
+                            alert(errorData.message.join('\n'));
+                        } else {
+                            // Fallback error message
+                            alert('Failed to submit joke. Please try again.');
+                        }
+                    });
                 }
             })
             .catch((err) => console.error('Error submitting joke:', err));

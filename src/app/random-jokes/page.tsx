@@ -12,7 +12,7 @@ export default function RandomJokesPage() {
     const [joke, setJoke] = useState<Joke | null>(null);
 
     useEffect(() => {
-        fetch(`${process.env.NEXT_PUBLIC_DELIVER_JOKES_API}/types`)
+        fetch(`${process.env.NEXT_PUBLIC_DELIVER_JOKES_API}/api/v1/delivery/types`)
             .then((res) => res.json())
             .then((data) => {
                 // Extract the `data` field from the response
@@ -27,7 +27,7 @@ export default function RandomJokesPage() {
 
     const fetchRandomJoke = () => {
         fetch(
-            `${process.env.NEXT_PUBLIC_DELIVER_JOKES_API}/random${selectedType ? `?type=${selectedType}` : ''
+            `${process.env.NEXT_PUBLIC_DELIVER_JOKES_API}/api/v1/delivery/random${selectedType ? `?type=${selectedType}` : ''
             }`
         )
             .then((res) => res.json())

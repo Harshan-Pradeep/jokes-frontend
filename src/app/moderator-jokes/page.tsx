@@ -9,7 +9,7 @@ type Joke = {
     type: string;
     status: string;
 };
-
+ 
 type PaginatedJokes = {
     jokes: Joke[];
     total: number;
@@ -31,7 +31,7 @@ export default function ModeratorJokesPage() {
     // Authentication
     const authenticate = async (email: string, password: string) => {
         try {
-            const response = await fetch('http://localhost:3004/api/v1/auth/login', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -54,7 +54,7 @@ export default function ModeratorJokesPage() {
 
     // Fetch joke types
     useEffect(() => {
-        fetch(`${process.env.NEXT_PUBLIC_DELIVER_JOKES_API}/types`)
+        fetch(`${process.env.NEXT_PUBLIC_DELIVER_JOKES_API}/api/v1/delivery/types`)
             .then((res) => res.json())
             .then((data) => {
                 if (data && data.data) {
@@ -72,7 +72,7 @@ export default function ModeratorJokesPage() {
 
         try {
             const response = await fetch(
-                `http://localhost:3004/api/v1/moderate/pending?page=${page}&limit=${ITEMS_PER_PAGE}`,
+                `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/pending?page=${page}&limit=${ITEMS_PER_PAGE}`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
                 }
@@ -103,7 +103,7 @@ export default function ModeratorJokesPage() {
 
         try {
             const response = await fetch(
-                `http://localhost:3004/api/v1/moderate/delete?id=${id}`,
+                `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/delete?id=${id}`,
                 {
                     method: 'DELETE',
                     headers: { Authorization: `Bearer ${token}` },
@@ -134,7 +134,7 @@ export default function ModeratorJokesPage() {
 
         try {
             const response = await fetch(
-                `http://localhost:3004/api/v1/moderate/update?id=${joke._id}`,
+                `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/update?id=${joke._id}`,
                 {
                     method: 'PUT',
                     headers: {
@@ -146,7 +146,6 @@ export default function ModeratorJokesPage() {
             );
 
             if (response.ok) {
-                const data = await response.json();
                 alert('Joke approved successfully!');
                 fetchPendingJokes(currentPage);
             } else {
@@ -154,6 +153,41 @@ export default function ModeratorJokesPage() {
             }
         } catch (err) {
             console.error('Error approving joke:', err);
+        }
+    };
+
+    // Update Joke
+    const updateJoke = async (joke: Joke) => {
+        if (!token) return;
+
+        const updatedJoke = {
+            content: joke.content,
+            type: joke.type,
+            status: joke.status, // Keep the current status
+            author: 'Moderator',
+        };
+
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/update?id=${joke._id}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedJoke),
+                }
+            );
+
+            if (response.ok) {
+                alert('Joke updated successfully!');
+                fetchPendingJokes(currentPage);
+            } else {
+                console.error('Error updating joke:', await response.text());
+            }
+        } catch (err) {
+            console.error('Error updating joke:', err);
         }
     };
 
@@ -199,7 +233,6 @@ export default function ModeratorJokesPage() {
                     </form>
                 </div>
             </>
-
         );
     }
 
@@ -235,7 +268,6 @@ export default function ModeratorJokesPage() {
                                     ))}
                                 </select>
 
-
                                 <p><strong>Status:</strong> {joke.status}</p>
                                 <div className="flex gap-4 mt-4">
                                     <button
@@ -249,6 +281,12 @@ export default function ModeratorJokesPage() {
                                         className="bg-red-500 p-2 text-white rounded"
                                     >
                                         Reject
+                                    </button>
+                                    <button
+                                        onClick={() => updateJoke(joke)}
+                                        className="bg-yellow-500 p-2 text-white rounded"
+                                    >
+                                        Update
                                     </button>
                                 </div>
                             </div>
@@ -279,6 +317,5 @@ export default function ModeratorJokesPage() {
                 )}
             </div>
         </>
-
     );
 }
