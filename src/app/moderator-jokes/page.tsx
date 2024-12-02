@@ -95,6 +95,9 @@ export default function ModeratorJokesPage() {
             await createJokeType({ name: jokeTypeName });
             setMessage('Joke type created successfully!');
             setJokeTypeName('');
+            const response = await fetch(`${process.env.NEXT_PUBLIC_DELIVER_JOKES_API}/api/v1/delivery/types`);
+            const data = await response.json();
+            if (data?.data) setJokeTypes(data.data);
         } catch (error) {
             console.error('Error creating joke type:', error);
             setMessage('Failed to create joke type. Please try again.');
@@ -108,7 +111,7 @@ export default function ModeratorJokesPage() {
                 if (data?.data) setJokeTypes(data.data);
             })
             .catch(console.error);
-    }, [handleCreateJokeType]);
+    }, []);
 
     useEffect(() => {
         if (isAuthenticated) {

@@ -12,6 +12,7 @@ export default function RandomJokesDisplay({ joke }: RandomJokesDisplayProps) {
             <h2 className="text-xl font-bold text-blue-400 mb-4">Here&apos;s Your Joke:</h2>
             <p className="text-lg text-white mb-2">{joke.content}</p>
             <p className="text-sm text-gray-400">Type: {joke.type}</p>
+            <p className="text-sm text-gray-400">Author: {joke.author}</p>
         </div>
     );
 }
