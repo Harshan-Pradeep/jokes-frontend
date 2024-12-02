@@ -14,7 +14,6 @@ import {
     createJokeType
 } from '@/app/services/jokeService';
 import { Joke, JokeType } from '@/app/types/jokeTypes';
-import CreateJokeTypeForm from '@/components/ModeratorJokes/CreateJokeTypeForm';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -35,6 +34,7 @@ export default function ModeratorJokesPage() {
             setError('');
         } catch (err) {
             setError('Invalid credentials. Please try again.');
+            console.log(err);
         }
     };
 

@@ -1,4 +1,4 @@
-import { Joke, UpdateJoke } from "../types/jokeTypes";
+import { Joke } from "../types/jokeTypes";
 
 
 export async function fetchRandomJoke(type: string): Promise<Joke> {
@@ -53,9 +53,9 @@ export const fetchPendingJokes = async (page: number, limit: number) => {
 };
 
 export async function approveJoke(joke: Joke): Promise<void> {
-    const { _id, createdAt, __v, ...jokeWithoutId } = joke;
+    const { _id, ...jokeWithoutId } = joke;
     const response = await fetch(
-        `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/update?id=${joke._id}`,
+        `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/update?id=${_id}`,
         {
             method: 'PUT',
             headers: {
@@ -94,7 +94,7 @@ export async function rejectJoke(id: string): Promise<void> {
 }
 
 export async function updateJoke(joke: Joke): Promise<void> {
-    const { _id, createdAt, __v, ...jokeWithoutId } = joke;
+    const { _id, ...jokeWithoutId } = joke;
     const response = await fetch(
         `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/update?id=${_id}`,
         {
