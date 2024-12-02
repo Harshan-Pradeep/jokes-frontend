@@ -3,6 +3,7 @@ export interface Joke {
     content: string;
     type: string;
     status: string;
+    author: string;
     createdAt: string;
     __v: number;
 }

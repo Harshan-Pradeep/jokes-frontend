@@ -8,6 +8,7 @@ import { useState } from 'react';
 export default function SubmitJokesForm() {
     const [selectedType, setSelectedType] = useState('');
     const [jokeContent, setJokeContent] = useState('');
+    const [author, setAuthor] = useState('');
     const { jokeTypes } = useFetchJokeTypes();
 
     const handleSubmitJoke = async (e: React.FormEvent) => {
@@ -17,11 +18,17 @@ export default function SubmitJokesForm() {
             return;
         }
 
+        if (!author.trim()) {
+            alert('Please enter the author name.');
+            return;
+        }
+
         try {
-            await submitJoke({ type: selectedType, content: jokeContent });
+            await submitJoke({ type: selectedType, content: jokeContent, author });
             alert('Joke submitted successfully!');
             setJokeContent('');
             setSelectedType('');
+            setAuthor('');
         } catch (err) {
             console.error('Error submitting joke:', err);
             alert('Failed to submit joke. Please try again.');
@@ -53,6 +60,17 @@ export default function SubmitJokesForm() {
                     value={jokeContent}
                     onChange={(e) => setJokeContent(e.target.value)}
                     placeholder="Write your joke here..."
+                    required
+                />
+            </div>
+            <div className="mb-6">
+                <label className="block text-lg font-semibold text-blue-400 mb-4">Author Name:</label>
+                <input
+                    type="text"
+                    className="border border-gray-700 p-3 rounded-lg w-full bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Enter author name..."
                     required
                 />
             </div>

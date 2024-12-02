@@ -14,7 +14,7 @@ export async function fetchRandomJoke(type: string): Promise<Joke> {
     return data.data;
 }
 
-export async function submitJoke(joke: { type: string; content: string }): Promise<void> {
+export async function submitJoke(joke: { type: string; content: string; author:string; }): Promise<void> {
     const response = await fetch(`${process.env.NEXT_PUBLIC_SUBMIT_JOKES_API}/api/v1/jokes/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -53,7 +53,7 @@ export const fetchPendingJokes = async (page: number, limit: number) => {
 };
 
 export async function approveJoke(joke: Joke): Promise<void> {
-    const { _id, ...jokeWithoutId } = joke;
+    const { _id,createdAt,__v, ...jokeWithoutId } = joke;
     const response = await fetch(
         `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/update?id=${_id}`,
         {
@@ -94,7 +94,7 @@ export async function rejectJoke(id: string): Promise<void> {
 }
 
 export async function updateJoke(joke: Joke): Promise<void> {
-    const { _id, ...jokeWithoutId } = joke;
+    const { _id,createdAt,__v, ...jokeWithoutId } = joke;
     const response = await fetch(
         `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/update?id=${_id}`,
         {

@@ -42,6 +42,7 @@ export const JokeCard: React.FC<JokeCardProps> = ({
         </select>
 
         <p className="text-sm text-gray-400 mb-4"><strong>Status:</strong> {joke.status}</p>
+        <p className="text-sm text-gray-400 mb-4"><strong>Author:</strong> {joke.author}</p>
         <div className="flex gap-4 mt-4">
             <button
                 onClick={onApprove}
