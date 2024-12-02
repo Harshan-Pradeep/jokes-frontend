@@ -15,15 +15,6 @@ export interface UpdateJoke {
 }
 
 
-interface ApiResponse {
-    statusCode: number;
-    message: string;
-    data: {
-        jokes: Joke[];
-        total: number;
-    }
-}
-
 export type JokeType = {
     id: string;
     name: string;

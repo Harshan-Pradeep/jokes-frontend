@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 interface LoginFormProps {
     onLogin: (email: string, password: string) => Promise<void>;
     error: string;

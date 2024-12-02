@@ -3,7 +3,7 @@
 import { useFetchJokeTypes } from '@/app/hooks/useFetchJokeTypes';
 import { fetchRandomJoke } from '@/app/services/jokeService';
 import { Joke, JokeType } from '@/app/types/jokeTypes';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 type RandomJokesFormProps = {
     setJoke: (joke: Joke) => void;
