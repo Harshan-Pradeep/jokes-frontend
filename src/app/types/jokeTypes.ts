@@ -1,11 +1,19 @@
-// types/jokeTypes.ts
 export interface Joke {
-    _id: string;  // Note: Changed from 'id' to '_id' to match API
+    _id: string;
     content: string;
     type: string;
     status: string;
     createdAt: string;
+    __v: number;
 }
+
+export interface UpdateJoke {
+    _id: string;
+    content: string;
+    type: string;
+    status: string;
+}
+
 
 interface ApiResponse {
     statusCode: number;
@@ -17,6 +25,6 @@ interface ApiResponse {
 }
 
 export type JokeType = {
-    _id: string;
+    id: string;
     name: string;
 };

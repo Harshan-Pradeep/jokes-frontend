@@ -1,199 +1,118 @@
 'use client';
 
-import Navbar from '@/components/Navbar';
 import { useState, useEffect } from 'react';
+import Navbar from '@/components/Navbar';
+import { LoginForm } from '@/components/ModeratorJokes/LoginForm';
+import { JokeCard } from '@/components/ModeratorJokes/JokeCard';
+import { Pagination } from '@/components/ModeratorJokes/Pagination';
+import { authenticate } from '@/app/services/authService';
+import {
+    fetchPendingJokes,
+    approveJoke as approveJokeService,
+    rejectJoke as rejectJokeService,
+    updateJoke as updateJokeService,
+    createJokeType
+} from '@/app/services/jokeService';
+import { Joke, JokeType } from '@/app/types/jokeTypes';
+import CreateJokeTypeForm from '@/components/ModeratorJokes/CreateJokeTypeForm';
 
-type Joke = {
-    _id: string;
-    content: string;
-    type: string;
-    status: string;
-};
- 
-type PaginatedJokes = {
-    jokes: Joke[];
-    total: number;
-};
-
-type JokeType = { id: number; name: string };
+const ITEMS_PER_PAGE = 5;
 
 export default function ModeratorJokesPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [token, setToken] = useState<string | null>(null);
     const [jokes, setJokes] = useState<Joke[]>([]);
     const [totalJokes, setTotalJokes] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [jokeTypes, setJokeTypes] = useState<JokeType[]>([]);
     const [error, setError] = useState('');
+    const [jokeTypeName, setJokeTypeName] = useState('');
+    const [message, setMessage] = useState('');
 
-    const ITEMS_PER_PAGE = 5;
-
-    // Authentication
-    const authenticate = async (email: string, password: string) => {
+    const handleLogin = async (email: string, password: string) => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                setError('Invalid credentials. Please try again.');
-                return;
-            }
-
-            const data = await response.json();
-            setToken(data.token);
+            await authenticate(email, password);
             setIsAuthenticated(true);
             setError('');
         } catch (err) {
-            console.error('Error during login:', err);
-            setError('An error occurred during login.');
+            setError('Invalid credentials. Please try again.');
         }
     };
 
-    // Fetch joke types
+    const refreshJokes = async () => {
+        try {
+            const data = await fetchPendingJokes(currentPage, ITEMS_PER_PAGE);
+            setJokes(data.data.jokes);
+            setTotalJokes(data.data.total);
+        } catch (error) {
+            console.error('Error fetching jokes:', error);
+        }
+    };
+
+    const handleJokeContentChange = (jokeId: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const updatedJokes = jokes.map(joke =>
+            joke._id === jokeId ? { ...joke, content: e.target.value } : joke
+        );
+        setJokes(updatedJokes);
+    };
+
+    const handleJokeTypeChange = (jokeId: string) => (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const updatedJokes = jokes.map(joke =>
+            joke._id === jokeId ? { ...joke, type: e.target.value } : joke
+        );
+        setJokes(updatedJokes);
+    };
+
+    const handleApprove = (joke: Joke) => async () => {
+        try {
+            await approveJokeService(joke);
+            await refreshJokes();
+        } catch (error) {
+            console.error('Error approving joke:', error);
+        }
+    };
+
+    const handleReject = (jokeId: string) => async () => {
+        try {
+            await rejectJokeService(jokeId);
+            await refreshJokes();
+        } catch (error) {
+            console.error('Error rejecting joke:', error);
+        }
+    };
+
+    const handleUpdate = (joke: Joke) => async () => {
+        try {
+            await updateJokeService(joke);
+            await refreshJokes();
+        } catch (error) {
+            console.error('Error updating joke:', error);
+        }
+    };
+
+    const handleCreateJokeType = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await createJokeType({ name: jokeTypeName });
+            setMessage('Joke type created successfully!');
+            setJokeTypeName('');
+        } catch (error) {
+            console.error('Error creating joke type:', error);
+            setMessage('Failed to create joke type. Please try again.');
+        }
+    };
+
     useEffect(() => {
         fetch(`${process.env.NEXT_PUBLIC_DELIVER_JOKES_API}/api/v1/delivery/types`)
             .then((res) => res.json())
             .then((data) => {
-                if (data && data.data) {
-                    setJokeTypes(data.data);
-                } else {
-                    console.error('Invalid API response:', data);
-                }
+                if (data?.data) setJokeTypes(data.data);
             })
-            .catch((err) => console.error('Error fetching joke types:', err));
-    }, []);
-
-    // Fetch Pending Jokes
-    const fetchPendingJokes = async (page: number) => {
-        if (!token) return;
-
-        try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/pending?page=${page}&limit=${ITEMS_PER_PAGE}`,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-
-            if (!response.ok) {
-                console.error('Error fetching jokes:', await response.text());
-                return;
-            }
-
-            const data: { data: PaginatedJokes } = await response.json();
-            setJokes(data.data.jokes);
-            setTotalJokes(data.data.total);
-        } catch (err) {
-            console.error('Error fetching jokes:', err);
-        }
-    };
-
-    // Handle Page Change
-    const handlePageChange = (newPage: number) => {
-        setCurrentPage(newPage);
-        fetchPendingJokes(newPage);
-    };
-
-    // Reject/Delete Joke
-    const rejectJoke = async (id: string) => {
-        if (!token) return;
-
-        try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/delete?id=${id}`,
-                {
-                    method: 'DELETE',
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-
-            if (response.ok) {
-                alert('Joke rejected successfully!');
-                fetchPendingJokes(currentPage);
-            } else {
-                console.error('Error rejecting joke:', await response.text());
-            }
-        } catch (err) {
-            console.error('Error rejecting joke:', err);
-        }
-    };
-
-    // Approve/Update Joke
-    const approveJoke = async (joke: Joke) => {
-        if (!token) return;
-
-        const updatedJoke = {
-            content: joke.content,
-            type: joke.type,
-            status: 'approved',
-            author: 'Moderator',
-        };
-
-        try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/update?id=${joke._id}`,
-                {
-                    method: 'PUT',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(updatedJoke),
-                }
-            );
-
-            if (response.ok) {
-                alert('Joke approved successfully!');
-                fetchPendingJokes(currentPage);
-            } else {
-                console.error('Error approving joke:', await response.text());
-            }
-        } catch (err) {
-            console.error('Error approving joke:', err);
-        }
-    };
-
-    // Update Joke
-    const updateJoke = async (joke: Joke) => {
-        if (!token) return;
-
-        const updatedJoke = {
-            content: joke.content,
-            type: joke.type,
-            status: joke.status, // Keep the current status
-            author: 'Moderator',
-        };
-
-        try {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_MODERATOR_JOKES_API}/api/v1/moderate/update?id=${joke._id}`,
-                {
-                    method: 'PUT',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(updatedJoke),
-                }
-            );
-
-            if (response.ok) {
-                alert('Joke updated successfully!');
-                fetchPendingJokes(currentPage);
-            } else {
-                console.error('Error updating joke:', await response.text());
-            }
-        } catch (err) {
-            console.error('Error updating joke:', err);
-        }
-    };
+            .catch(console.error);
+    }, [handleCreateJokeType]);
 
     useEffect(() => {
         if (isAuthenticated) {
-            fetchPendingJokes(currentPage);
+            refreshJokes();
         }
     }, [isAuthenticated, currentPage]);
 
@@ -201,36 +120,8 @@ export default function ModeratorJokesPage() {
         return (
             <>
                 <Navbar />
-                <div className="p-4">
-                    <h1 className="text-2xl font-bold mb-4">Moderator Login</h1>
-                    {error && <p className="text-red-500">{error}</p>}
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            const email = (e.target as any).email.value;
-                            const password = (e.target as any).password.value;
-                            authenticate(email, password);
-                        }}
-                        className="space-y-4"
-                    >
-                        <input
-                            type="email"
-                            name="email"
-                            placeholder="Email"
-                            className="border p-2 rounded w-full"
-                            required
-                        />
-                        <input
-                            type="password"
-                            name="password"
-                            placeholder="Password"
-                            className="border p-2 rounded w-full"
-                            required
-                        />
-                        <button type="submit" className="bg-blue-500 text-white p-2 rounded">
-                            Login
-                        </button>
-                    </form>
+                <div className="flex items-center justify-center h-screen bg-gray-900">
+                    <LoginForm onLogin={handleLogin} error={error} />
                 </div>
             </>
         );
@@ -239,82 +130,59 @@ export default function ModeratorJokesPage() {
     return (
         <>
             <Navbar />
-            <div className="p-4">
-                <h1 className="text-2xl font-bold mb-4">Moderator Dashboard</h1>
-                <h2 className="text-lg font-medium mb-4">Pending Jokes</h2>
+            <div className="p-8 bg-gray-900 min-h-screen">
+                <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h1 className="text-3xl font-bold text-blue-400 mb-6 text-center">Moderator Dashboard</h1>
 
-                {jokes.length > 0 ? (
-                    <div>
-                        {jokes.map((joke) => (
-                            <div key={joke._id} className="border p-4 mb-4 rounded">
-                                <textarea
-                                    value={joke.content}
-                                    onChange={(e) => setJokes((prev) =>
-                                        prev.map((j) => (j._id === joke._id ? { ...j, content: e.target.value } : j))
-                                    )}
-                                    className="border p-2 w-full rounded"
+                    <>
+                        <div className="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                            <h2 className="text-xl font-semibold text-blue-400 mb-4 text-center">Create New Joke Type</h2>
+                            <form onSubmit={handleCreateJokeType} className="space-y-4">
+                                <input
+                                    type="text"
+                                    value={jokeTypeName}
+                                    onChange={(e) => setJokeTypeName(e.target.value)}
+                                    placeholder="Joke Type Name"
+                                    className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
                                 />
-                                <select
-                                    value={joke.type}
-                                    onChange={(e) => setJokes((prev) =>
-                                        prev.map((j) => (j._id === joke._id ? { ...j, type: e.target.value } : j))
-                                    )}
-                                    className="border p-2 rounded w-full mt-2"
+                                <button
+                                    type="submit"
+                                    className="w-full bg-gradient-to-r from-green-500 to-green-700 text-white font-bold py-3 rounded-lg hover:from-green-600 hover:to-green-800 transition-all duration-300 ease-in-out transform hover:scale-105"
                                 >
-                                    {jokeTypes.map((type) => (
-                                        <option key={type.id} value={type.name}>
-                                            {type.name}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                <p><strong>Status:</strong> {joke.status}</p>
-                                <div className="flex gap-4 mt-4">
-                                    <button
-                                        onClick={() => approveJoke(joke)}
-                                        className="bg-green-500 p-2 text-white rounded"
-                                    >
-                                        Approve
-                                    </button>
-                                    <button
-                                        onClick={() => rejectJoke(joke._id)}
-                                        className="bg-red-500 p-2 text-white rounded"
-                                    >
-                                        Reject
-                                    </button>
-                                    <button
-                                        onClick={() => updateJoke(joke)}
-                                        className="bg-yellow-500 p-2 text-white rounded"
-                                    >
-                                        Update
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                        <div className="flex justify-between items-center mt-4">
-                            <button
-                                onClick={() => handlePageChange(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className={`p-2 rounded ${currentPage === 1 ? 'bg-gray-300' : 'bg-blue-500 text-white'}`}
-                            >
-                                Previous
-                            </button>
-                            <span>Page {currentPage} of {Math.ceil(totalJokes / ITEMS_PER_PAGE)}</span>
-                            <button
-                                onClick={() => handlePageChange(currentPage + 1)}
-                                disabled={currentPage === Math.ceil(totalJokes / ITEMS_PER_PAGE)}
-                                className={`p-2 rounded ${currentPage === Math.ceil(totalJokes / ITEMS_PER_PAGE)
-                                    ? 'bg-gray-300'
-                                    : 'bg-blue-500 text-white'
-                                    }`}
-                            >
-                                Next
-                            </button>
+                                    Create Joke Type
+                                </button>
+                            </form>
+                            {message && <p className="text-center text-gray-400 mt-4">{message}</p>}
                         </div>
-                    </div>
-                ) : (
-                    <p>No jokes available.</p>
-                )}
+                    </>
+
+                    <h2 className="text-xl font-semibold text-white mb-6 text-center">Pending Jokes</h2>
+
+                    {jokes.length > 0 ? (
+                        <div>
+                            {jokes.map((joke) => (
+                                <JokeCard
+                                    key={joke._id}
+                                    joke={joke}
+                                    jokeTypes={jokeTypes}
+                                    onContentChange={handleJokeContentChange(joke._id)}
+                                    onTypeChange={handleJokeTypeChange(joke._id)}
+                                    onApprove={handleApprove(joke)}
+                                    onReject={handleReject(joke._id)}
+                                    onUpdate={handleUpdate(joke)}
+                                />
+                            ))}
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={Math.ceil(totalJokes / ITEMS_PER_PAGE)}
+                                onPageChange={setCurrentPage}
+                            />
+                        </div>
+                    ) : (
+                        <p className="text-white text-center">No jokes available.</p>
+                    )}
+                </div>
             </div>
         </>
     );
